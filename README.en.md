@@ -1,4 +1,4 @@
-# media-payload-restore
+﻿# media-payload-restore
 
 Losslessly restore **second-hand obfuscated H.264/AAC media** into standard mp4 — no re-encoding.
 
@@ -64,10 +64,10 @@ gcc -m32 -O2 -shared -o ..\..\build\avformat-58.dll proxy.c ..\..\build\gen.c ..
 cd ..\..
 
 # 1) one file
-.\scripts\extract-stream.ps1 -Input "D:\videos\lesson01.sz" -PlayerDir "D:\player"
+.\scripts\extract-stream.ps1 -Source "D:\videos\lesson01.sz" -PlayerDir "D:\player"
 
 # 2) whole tree (already-done files are skipped -> resumable)
-.\scripts\restore-batch.ps1 -Input "D:\videos" -PlayerDir "D:\player"
+.\scripts\restore-batch.ps1 -Source "D:\videos" -PlayerDir "D:\player"
 
 # 3) full-decode verification
 .\scripts\verify.ps1 -MediaDir "D:\videos"

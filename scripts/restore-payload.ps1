@@ -1,9 +1,9 @@
 ﻿# restore-payload.ps1 - 还原被二次改写过的媒体负载，输出标准 mp4（无损、不重编码）
 #
 # 用法:
-#   .\restore-payload.ps1 -Input "D:\videos\lesson01.sz" -PlayerDir "D:\player"
-#   .\restore-payload.ps1 -Input "..." -Out "D:\out\01.mp4" -PlayerDir "D:\player"
-#   .\restore-payload.ps1 -Input "D:\videos\某课程目录" -PlayerDir "D:\player"   # 目录递归批量
+#   .\restore-payload.ps1 -Source "D:\videos\lesson01.sz" -PlayerDir "D:\player"
+#   .\restore-payload.ps1 -Source "..." -Out "D:\out\01.mp4" -PlayerDir "D:\player"
+#   .\restore-payload.ps1 -Source "D:\videos\某课程目录" -PlayerDir "D:\player"   # 目录递归批量
 #
 # 原理（分两步）:
 #   1) 容器层：受保护文件的解密只能由发行方的播放器完成。用代理 DLL 截住它解密后的
@@ -19,7 +19,7 @@
 # 前置: 播放器工作副本与代理 DLL 由 extract-stream.ps1 首次运行时准备（本脚本会自动触发）。
 
 param(
-  [Parameter(Mandatory = $true, Position = 0)][string]$Input,
+  [Parameter(Mandatory = $true, Position = 0)][string]$Source,
   [string]$Out = "",
   [Parameter(Mandatory = $true)][string]$PlayerDir,
   [string]$PlayerExe = "",
@@ -39,7 +39,7 @@ function Info($m) { Write-Host "[restore] $m" }
 if (-not $Work) { $Work = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path) }
 $ffmpeg = Join-Path $Work 'ffmpeg.exe'
 $fix    = Join-Path $Work 'src\payload_restore.py'
-$dump   = Join-Path $Work 'decrypted_1.bin'
+$dump   = Join-Path $PlayerDir 'decrypted_1.bin'
 $bootstrap = Join-Path $Work 'scripts\extract-stream.ps1'
 
 if (-not (Test-Path $ffmpeg)) { throw "缺少 ffmpeg: $ffmpeg" }
@@ -64,7 +64,7 @@ function Convert-One([string]$path, [string]$outPath) {
   } else {
     Info '1/3 解密容器（启动播放器 + 代理 DLL）...'
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $bootstrap `
-        -Input $path -PlayerDir $PlayerDir -PlayerExe $PlayerExe -SourceDir $SourceDir `
+        -Source $path -PlayerDir $PlayerDir -PlayerExe $PlayerExe -SourceDir $SourceDir `
         -Work $Work -TimeoutSec $TimeoutSec -DumpOnly
     if (-not (Test-Path $dump)) { throw "解密失败：没有生成 $dump" }
   }
@@ -133,7 +133,7 @@ function Convert-One([string]$path, [string]$outPath) {
   }
 }
 
-$item = Get-Item -LiteralPath $Input
+$item = Get-Item -LiteralPath $Source
 if ($item.PSIsContainer) {
   $files = Get-ChildItem -LiteralPath $item.FullName -Recurse -Filter $Filter | Sort-Object FullName
   Info ("批量: 找到 {0} 个 {1}" -f $files.Count, $Filter)

@@ -1,9 +1,9 @@
 ﻿# extract-stream.ps1 - 从发行方自带的播放器里取出它解密后的媒体流，并转成 mp4
 #
 # 用法:
-#   .\extract-stream.ps1 -Input "D:\videos\lesson01.sz" -PlayerDir "D:\player"
-#   .\extract-stream.ps1 -Input "..." -PlayerDir "..." -Out "D:\out\01.mp4"
-#   .\extract-stream.ps1 -Input "..." -PlayerDir "..." -DumpOnly     # 只取明文流
+#   .\extract-stream.ps1 -Source "D:\videos\lesson01.sz" -PlayerDir "D:\player"
+#   .\extract-stream.ps1 -Source "..." -PlayerDir "..." -Out "D:\out\01.mp4"
+#   .\extract-stream.ps1 -Source "..." -PlayerDir "..." -DumpOnly     # 只取明文流
 #
 # 原理:
 #   这类受保护的媒体只能由发行方自带的播放器解密，所以把播放器当作"解密黑盒"：
@@ -24,7 +24,7 @@
 #     首次可以用 -SourceDir 把系统里已安装的那份拷贝过来
 
 param(
-  [Parameter(Mandatory = $true, Position = 0)][string]$Input,
+  [Parameter(Mandatory = $true, Position = 0)][string]$Source,
   [string]$Out = "",
   [Parameter(Mandatory = $true)][string]$PlayerDir,
   [string]$PlayerExe = "",
@@ -39,7 +39,7 @@ param(
 $ErrorActionPreference = 'Stop'
 function Info($m) { Write-Host "[extract] $m" }
 
-$inputPath = (Resolve-Path -LiteralPath $Input).Path
+$inputPath = (Resolve-Path -LiteralPath $Source).Path
 if (-not $Out) { $Out = [IO.Path]::ChangeExtension($inputPath, '.mp4') }
 if (-not $Work) { $Work = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path) }
 if (-not (Test-Path $PlayerDir)) { throw "找不到播放器目录: $PlayerDir" }
@@ -54,8 +54,8 @@ $proxySrc  = Join-Path $Work "build\$ProxyDll"
 $proxyDst  = Join-Path $PlayerDir $ProxyDll
 $origDll   = Join-Path $PlayerDir ($ProxyDll -replace '\.dll$', '_orig.dll')
 $ffmpeg    = Join-Path $Work 'ffmpeg.exe'
-$log       = Join-Path $Work 'proxy_log.txt'
-$dump      = Join-Path $Work 'decrypted_1.bin'
+$log       = Join-Path $PlayerDir 'proxy_log.txt'
+$dump      = Join-Path $PlayerDir 'decrypted_1.bin'
 
 # ---------------------------------------------------------------- 1. 准备播放器
 if ($SourceDir -and -not (Test-Path $exe)) {
@@ -88,8 +88,9 @@ if ($need) { Copy-Item $proxySrc $proxyDst -Force; Info "安装代理 $ProxyDll"
 
 # ---------------------------------------------------------------- 2. 清场
 Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($PlayerExe)) -ErrorAction SilentlyContinue |
-  Where-Object { $_.Path -like "$PlayerDir\*" } | ForEach-Object { $_.Kill() }
-Start-Sleep -Milliseconds 500
+  Where-Object { $_.Path -like "$PlayerDir\*" } |
+  ForEach-Object { $_.Kill(); try { $_.WaitForExit(8000) | Out-Null } catch { } }
+Start-Sleep -Milliseconds 800
 Remove-Item $log -ErrorAction SilentlyContinue
 Remove-Item $dump -Force -ErrorAction SilentlyContinue
 
@@ -187,8 +188,8 @@ $fs.Close()
 $isMp4 = ($nread -ge 8) -and ([Text.Encoding]::ASCII.GetString($hb, 4, 4) -eq 'ftyp')
 if ($isMp4) {
   Info "明文是 MP4 -> 转交 restore-payload.ps1 做负载还原"
-  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Work 'restore-payload.ps1') `
-      -Input $inputPath -Out $Out -Work $Work -PlayerDir $PlayerDir -PlayerExe $PlayerExe -ReuseDump -KeepTemp
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Work 'scripts\restore-payload.ps1') `
+      -Source $inputPath -Out $Out -Work $Work -PlayerDir $PlayerDir -PlayerExe $PlayerExe -ReuseDump -KeepTemp
   Get-Process -Id $proc.Id -ErrorAction SilentlyContinue | ForEach-Object { $_.Kill() }
   if (Test-Path $Out) { Info ("完成(经负载还原流程): {0}" -f $Out); return } else { throw "转换失败（负载还原流程）" }
 }

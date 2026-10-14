@@ -1,4 +1,4 @@
-# media-payload-restore
+﻿# media-payload-restore
 
 把一类**被二次改写过的 H.264/AAC 媒体**无损还原成标准 mp4 —— 不重新编码。
 
@@ -66,6 +66,19 @@
 
 ## 快速开始
 
+> **运行前准备清单**（仓库里刻意不带二进制和大文件，所以克隆后需要凑齐这四样）：
+>
+> | 需要 | 放哪 | 说明 |
+> |---|---|---|
+> | `ffmpeg.exe` | 仓库根目录 | 自己下载，静态版即可 |
+> | 代理 DLL | `build\avformat-58.dll` | 用下面的命令编译（源码在 `src\dll-proxy\`） |
+> | 播放器副本 | 任意目录，用 `-PlayerDir` 指过去 | 你自己的播放器安装；首次可用 `-SourceDir` 拷一份 |
+> | Python 3.8+ | PATH 上 | 只用标准库，不需要 pip |
+>
+> 编译代理 DLL 需要 **mingw-w64 的 gcc（能编 32 位）**：
+> 实测 **64 位 mingw-w64 加 `-m32` 也可以**（会链接它的 32 位库），
+> 纯 32 位 mingw32 当然也行。
+
 ```powershell
 # 0) 编译代理 DLL（只需一次）
 cd src\dll-proxy
@@ -74,10 +87,10 @@ gcc -m32 -O2 -shared -o ..\..\build\avformat-58.dll proxy.c ..\..\build\gen.c ..
 cd ..\..
 
 # 1) 单个文件（自动完成：取明文 -> 判断容器 -> 还原负载 -> 封装 -> 全片校验）
-.\scripts\extract-stream.ps1 -Input "D:\videos\lesson01.sz" -PlayerDir "D:\player"
+.\scripts\extract-stream.ps1 -Source "D:\videos\lesson01.sz" -PlayerDir "D:\player"
 
 # 2) 目录递归批量（已存在同名 mp4 会自动跳过，可断点续跑）
-.\scripts\restore-batch.ps1 -Input "D:\videos" -PlayerDir "D:\player"
+.\scripts\restore-batch.ps1 -Source "D:\videos" -PlayerDir "D:\player"
 
 # 3) 只看进度
 .\scripts\status.ps1

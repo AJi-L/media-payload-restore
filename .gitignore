@@ -1,5 +1,7 @@
 # 运行时产物 / 大文件，不入库
 build/
+player/
+work/
 *.exe
 *.dll
 *.lib
@@ -17,6 +19,12 @@ build/
 # 日志
 *_log.txt
 proxy_log.txt
+
+# 脚本运行期中间产物
+_payload.*
+_video.*
+_audio.*
+_payload_restore.*
 
 # Python
 __pycache__/

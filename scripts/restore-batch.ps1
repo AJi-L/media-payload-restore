@@ -1,9 +1,9 @@
 ﻿# restore-batch.ps1 - 目录递归批量：把受保护文件逐个转成 mp4（已完成的自动跳过）
 #
 # 用法:
-#   .\restore-batch.ps1 -Input "D:\videos" -PlayerDir "D:\player"
-#   .\restore-batch.ps1 -Input "D:\videos" -PlayerDir "D:\player" -Filter "*.sz"
-#   .\restore-batch.ps1 -Input "D:\videos\lesson01.sz" -PlayerDir "D:\player"   # 单个也行
+#   .\restore-batch.ps1 -Source "D:\videos" -PlayerDir "D:\player"
+#   .\restore-batch.ps1 -Source "D:\videos" -PlayerDir "D:\player" -Filter "*.sz"
+#   .\restore-batch.ps1 -Source "D:\videos\lesson01.sz" -PlayerDir "D:\player"   # 单个也行
 #
 # 说明:
 #   - 单个文件由 extract-stream.ps1 负责（它会自动判断明文是 TS 还是被改写的 MP4，
@@ -12,7 +12,7 @@
 #   - 单个文件失败只记一条 [FAIL] 并继续，不会拖死整批
 
 param(
-  [Parameter(Mandatory = $true, Position = 0)][string]$Input,
+  [Parameter(Mandatory = $true, Position = 0)][string]$Source,
   [Parameter(Mandatory = $true)][string]$PlayerDir,
   [string]$PlayerExe = "",
   [string]$SourceDir = "",
@@ -29,7 +29,7 @@ if (-not $Work) { $Work = Split-Path -Parent (Split-Path -Parent $MyInvocation.M
 $extract = Join-Path $Work 'scripts\extract-stream.ps1'
 if (-not (Test-Path $extract)) { throw "缺少 scripts/extract-stream.ps1" }
 
-$item = Get-Item -LiteralPath $Input
+$item = Get-Item -LiteralPath $Source
 if ($item.PSIsContainer) {
   $files = @(Get-ChildItem -LiteralPath $item.FullName -Recurse -Filter $Filter | Sort-Object FullName)
 } else {
@@ -46,7 +46,7 @@ foreach ($f in $files) {
   $t0 = Get-Date
   try {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $extract `
-        -Input $f.FullName -Out $out -PlayerDir $PlayerDir -PlayerExe $PlayerExe `
+        -Source $f.FullName -Out $out -PlayerDir $PlayerDir -PlayerExe $PlayerExe `
         -SourceDir $SourceDir -Work $Work -TimeoutSec $TimeoutSec
     if (-not ((Test-Path $out) -and (Get-Item $out).Length -gt 0)) { throw "没有产出 mp4" }
     $ok++
