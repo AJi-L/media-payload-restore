@@ -1,0 +1,29 @@
+# 运行时产物 / 大文件，不入库
+build/
+*.exe
+*.dll
+*.lib
+*.obj
+*.o
+*.bin
+*.h264
+*.aac
+*.mp4
+*.ts
+*.m2ts
+*.sz
+*.vep
+
+# 日志
+*_log.txt
+proxy_log.txt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 编辑器
+.vscode/
+.idea/
